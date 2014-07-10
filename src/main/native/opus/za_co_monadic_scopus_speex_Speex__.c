@@ -16,14 +16,16 @@ typedef struct {
 JNIEXPORT jint JNICALL Java_za_co_monadic_scopus_speex_Speex_00024_encoder_1ctl
     (JNIEnv *env, jobject clazz, jlong encoder, jint command, jint value) {
     jint ret = value;
-    speex_encoder_ctl((codec_state *)encoder, command, &ret);
+    codec_state *state = (codec_state *) encoder;
+    speex_encoder_ctl(state->st, command, &ret);
     return ret;
 }
 
 JNIEXPORT jint JNICALL Java_za_co_monadic_scopus_speex_Speex_00024_decoder_1ctl
     (JNIEnv *env, jobject clazz, jlong decoder, jint command, jint value) {
     jint ret = value;
-    speex_decoder_ctl((codec_state *)decoder, command, &ret);
+    codec_state *state = (codec_state *) decoder;
+    speex_decoder_ctl(state->st, command, &ret);
     return ret;
 }
 
@@ -44,6 +46,7 @@ JNIEXPORT jlong JNICALL Java_za_co_monadic_scopus_speex_Speex_00024_encoder_1cre
             free(state);
             return (jlong) -1;
     }
+
     speex_bits_init(&(state->bits));
     return (jlong) state;
 }

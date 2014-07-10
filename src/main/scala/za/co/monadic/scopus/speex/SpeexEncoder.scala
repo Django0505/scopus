@@ -10,7 +10,7 @@ import Speex._
 class SpeexEncoder(sampleFreq: SampleFrequency) extends Encoder {
 
 
-  val state = encoder_create(getMode(sampleFreq))
+  val state: Long = encoder_create(getMode(sampleFreq))
   if (state <= 0) throw new RuntimeException("Failed to construct a Speex encoder")
   var clean = false
 

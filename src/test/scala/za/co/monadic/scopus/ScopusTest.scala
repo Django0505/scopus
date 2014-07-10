@@ -72,8 +72,9 @@ class ScopusTest extends FunSpec with Matchers with GivenWhenThen with BeforeAnd
   val chunks = audio.slice(0, nSamples).grouped(chunkSize).toList
   val chunksFloat = audioFloat.slice(0, nSamples).grouped(chunkSize).toList
 
-  val codecs = List(("Opus", OpusEncoder(Sf8000, 1), OpusDecoderShort(Sf8000, 1), OpusDecoderFloat(Sf8000, 1)),
-    ("Speex", SpeexEncoder(Sf8000), SpeexDecoderShort(Sf8000), SpeexDecoderFloat(Sf8000)))
+  val codecs = List(
+    /*("Speex", SpeexEncoder(Sf8000), SpeexDecoderShort(Sf8000), SpeexDecoderFloat(Sf8000)),*/
+    ("Opus", OpusEncoder(Sf8000, 1), OpusDecoderShort(Sf8000, 1), OpusDecoderFloat(Sf8000, 1)))
 
 
   for ((t, e, d, df) <- codecs) testCommon(t, e, d, df)
@@ -207,13 +208,10 @@ class ScopusTest extends FunSpec with Matchers with GivenWhenThen with BeforeAnd
         speed should be > 400.0
         info(f"Decoder runs at $speed%5.1f times real time")
       }
-
     }
-
   }
 
   describe("The Opus codec") {
-
 
     it("Fails if the encoder and decoder constructors throw") {
       // cannot build 4 channel decoders like this
@@ -275,7 +273,5 @@ class ScopusTest extends FunSpec with Matchers with GivenWhenThen with BeforeAnd
         case e: Exception => fail(s"Received exception ${e.getMessage}")
       }
     }
-
-
   }
 }
