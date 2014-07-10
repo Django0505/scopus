@@ -7,6 +7,11 @@
 extern "C" {
 #endif
 
+
+JNIEXPORT jint JNICALL Java_za_co_monadic_scopus_speex_Speex_00024_encoder_1ctl(JNIEnv *env, jobject clazz, jlong encoder, jint command, jint value);
+
+JNIEXPORT jint JNICALL Java_za_co_monadic_scopus_speex_Speex_00024_decoder_1ctl(JNIEnv *env, jobject clazz, jlong decoder, jint command, jint value);
+
 JNIEXPORT jlong JNICALL Java_za_co_monadic_scopus_speex_Speex_00024_encoder_1create(JNIEnv *env, jobject clazz, jint modeID);
 
 JNIEXPORT void JNICALL Java_za_co_monadic_scopus_speex_Speex_00024_encoder_1destroy(JNIEnv *env, jobject clazz, jlong state);

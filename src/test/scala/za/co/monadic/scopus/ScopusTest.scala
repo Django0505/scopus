@@ -2,9 +2,11 @@
  * Copyright David Weber 2014
  * Released under the Creative Commons License (http://creativecommons.org/licenses/by/4.0/legalcode)
  */
+
 import java.io._
 import org.scalatest._
-import za.co.monadic.scopus.opus.{Opus, OpusEncoder, DecoderFloat, OpusDecoder}
+import za.co.monadic.scopus.opus.{OpusDecoderShort, OpusDecoderFloat, OpusEncoder}
+import za.co.monadic.scopus.speex.{SpeexDecoderShort, SpeexDecoderFloat, SpeexEncoder}
 import scala.util.{Try, Failure, Success}
 import za.co.monadic.scopus._
 import Numeric.Implicits._
@@ -70,45 +72,148 @@ class ScopusTest extends FunSpec with Matchers with GivenWhenThen with BeforeAnd
   val chunks = audio.slice(0, nSamples).grouped(chunkSize).toList
   val chunksFloat = audioFloat.slice(0, nSamples).grouped(chunkSize).toList
 
-  val enc = Try(OpusEncoder(Sf8000, 1)) getOrElse fail("Encoder construction failed")
-  val dec = Try(OpusDecoder(Sf8000, 1)) getOrElse fail("Float decoder construction failed")
-  val decFloat = Try(DecoderFloat(Sf8000,1))getOrElse fail("Float decoder construction failed")
+  val codecs = List(("Opus", OpusEncoder(Sf8000, 1), OpusDecoderShort(Sf8000, 1), OpusDecoderFloat(Sf8000, 1)),
+    ("Speex", SpeexEncoder(Sf8000), SpeexDecoderShort(Sf8000), SpeexDecoderFloat(Sf8000)))
 
-  override def afterAll() = {
-    enc.cleanup()
-    dec.cleanup()
-    decFloat.cleanup()
+
+  for ((t, e, d, df) <- codecs) testCommon(t, e, d, df)
+
+  def testCommon(desc: String, enc: Encoder, dec: DecoderShort, decFloat: DecoderFloat) {
+
+    describe(s"$desc codec can") {
+
+      it("encode and decode audio segments as Short types") {
+        Given("a PCM file coded as an array of short integers and a codec pair")
+        enc.reset
+        dec.reset
+        enc.getSampleRate should equal(8000)
+        dec.getSampleRate should equal(8000)
+        When("the audio is encoded and then decoded")
+        val coded = for (c <- chunks) yield enc(c).get
+        val decoded = for (c <- coded) yield dec(c).get
+
+        Then("the number of packets in the original, coded and decoded streams should be the same")
+        coded.length should equal(chunks.length)
+        decoded.length should equal(chunks.length)
+
+        And("the decoded packet length should be the same as the coded packet length")
+        decoded.head.length should equal(chunks.head.length)
+
+        And("the decoded audio should sound the same as the original audio")
+        // Break the input and output audio streams into 5ms chunks and compute the energy in each chunk
+        val in = chunks.toArray.flatten.grouped(40).toList
+        val out = decoded.toArray.flatten.grouped(40).toList
+        val eIn = for (a <- in) yield energy(a)
+        val eOut = for (a <- out) yield energy(a)
+        correlate(eIn, eOut) should be > 0.93 // This is a pretty decent test if all is well
+        // Uncomment for audible verification.
+        //writeAudioFile("test-short.raw",decoded.toArray.flatten)
+      }
+
+
+      it("encode and decode audio segments as Float types") {
+        Given("a PCM file coded as an array of short integers and a codec pair")
+        enc.reset
+        dec.reset
+        When("the audio is encoded and then decoded")
+        val coded = for (c <- chunksFloat) yield enc(c).get
+        val decoded = for (c <- coded) yield decFloat(c).get
+
+        Then("the number of packets in the original, coded and decoded streams should be the same")
+        coded.length should equal(chunksFloat.length)
+        decoded.length should equal(chunksFloat.length)
+
+        And("the decoded packet length should be the same as the coded packet length")
+        decoded.head.length should equal(chunksFloat.head.length)
+
+        And("the decoded audio should sound the same as the original audio")
+        // Break the input and output audio streams into 5ms chunks and compute the energy in each chunk
+        val in = chunksFloat.toArray.flatten.grouped(40).toList
+        val out = decoded.toArray.flatten.grouped(40).toList
+        val eIn = for (a <- in) yield energy(a)
+        val eOut = for (a <- out) yield energy(a)
+        correlate(eIn, eOut) should be > 0.93
+      }
+
+      it("decodes erased packets to the specified number of samples") {
+        dec.reset
+        enc.reset
+        dec(enc(chunks.head).get) // Prime the decoder so it get the decoder state
+        dec(chunkSize).get.length should equal(chunkSize)
+      }
+
+      it("decode erased packets for Short data") {
+        enc.reset
+        dec.reset
+        val coded = for (c <- chunks) yield enc(c).get
+        val decoded = // Decode, dropping every 10th packet
+          for {
+            (c, i) <- coded zip (0 until coded.length)
+            p = if (i % 15 == 1) dec(chunkSize) else dec(c)
+          } yield p.get
+        val in = chunks.toArray.flatten.grouped(40).toList
+        val out = decoded.toArray.flatten.grouped(40).toList
+        val eIn = for (a <- in) yield energy(a)
+        val eOut = for (a <- out) yield energy(a)
+        val rho = correlate(eIn, eOut)
+        //writeAudioFile("test-short-erasure.raw",decoded.toArray.flatten)
+        rho should be > 0.91
+      }
+
+      it("decode erased packets for Float data") {
+        enc.reset
+        dec.reset
+        val coded = for (c <- chunksFloat) yield enc(c).get
+        val decoded = // Decode, dropping every 10th packet
+          for {
+            (c, i) <- coded zip (0 until coded.length)
+            p = if (i % 15 == 1) decFloat(chunkSize) else decFloat(c)
+          } yield p.get
+        val in = chunksFloat.toArray.flatten.grouped(40).toList
+        val out = decoded.toArray.flatten.grouped(40).toList
+        val eIn = for (a <- in) yield energy(a)
+        val eOut = for (a <- out) yield energy(a)
+        val rho = correlate(eIn, eOut)
+        rho should be > 0.91
+      }
+    }
+
+    describe(s"The $desc performance test will") {
+
+      val repeats = 50
+
+      it("meet basic encoder speed requirements") {
+        enc.reset
+        val tStart = System.currentTimeMillis()
+        for (i <- 0 until repeats) {
+          for (c <- chunks) enc(c)
+        }
+        val duration = (System.currentTimeMillis() - tStart) / 1000.0 // Seconds
+        val speed = repeats * nSamples / duration / 8000.0 // multiple of real time
+        speed should be > 100.0
+        info(f"Encoder runs at $speed%5.1f times real time")
+      }
+
+      it("meets basic decoder speed requirements") {
+        enc.reset
+        dec.reset
+        val tStart = System.currentTimeMillis()
+        val coded = for (c <- chunks) yield enc(c).get
+        for (i <- 0 until repeats) {
+          for (c <- coded) dec(c)
+        }
+        val duration = (System.currentTimeMillis() - tStart) / 1000.0 // Seconds
+        val speed = repeats * nSamples / duration / 8000.0 // multiple of real time
+        speed should be > 400.0
+        info(f"Decoder runs at $speed%5.1f times real time")
+      }
+
+    }
+
   }
 
-  describe("Opus codec can") {
+  describe("The Opus codec") {
 
-    it("encode and decode audio segments as Short types") {
-      Given("a PCM file coded as an array of short integers and a codec pair")
-      enc.reset
-      dec.reset
-      enc.getSampleRate should equal(8000)
-      dec.getSampleRate should equal(8000)
-      When("the audio is encoded and then decoded")
-      val coded = for (c <- chunks) yield enc(c).get
-      val decoded = for (c <- coded) yield dec(c).get
-
-      Then("the number of packets in the original, coded and decoded streams should be the same")
-      coded.length should equal(chunks.length)
-      decoded.length should equal(chunks.length)
-
-      And("the decoded packet length should be the same as the coded packet length")
-      decoded.head.length should equal(chunks.head.length)
-
-      And("the decoded audio should sound the same as the original audio")
-      // Break the input and output audio streams into 5ms chunks and compute the energy in each chunk
-      val in = chunks.toArray.flatten.grouped(40).toList
-      val out = decoded.toArray.flatten.grouped(40).toList
-      val eIn = for (a <- in) yield energy(a)
-      val eOut = for (a <- out) yield energy(a)
-      correlate(eIn, eOut) should be > 0.93 // This is a pretty decent test if all is well
-      // Uncomment for audible verification.
-      //writeAudioFile("test-short.raw",decoded.toArray.flatten)
-    }
 
     it("Fails if the encoder and decoder constructors throw") {
       // cannot build 4 channel decoders like this
@@ -116,42 +221,37 @@ class ScopusTest extends FunSpec with Matchers with GivenWhenThen with BeforeAnd
         case Success(ok) => fail("Encoder constructor did not fail on bad construction")
         case Failure(f) => f.getMessage should equal("Failed to create the Opus encoder: invalid argument")
       }
-      Try(OpusEncoder(Sf8000, 1, Voip, -1 )) match {
+      Try(OpusEncoder(Sf8000, 1, Voip, -1)) match {
         case Success(ok) => fail("Encoder constructor did not fail on bad construction")
         case Failure(f) => f.getMessage should equal("requirement failed: Buffer size must be positive")
       }
-      Try(OpusDecoder(Sf8000, 4)) match {
+      Try(OpusDecoderShort(Sf8000, 4)) match {
         case Success(ok) => fail("Short decoder constructor did not fail on bad construction")
         case Failure(f) => f.getMessage should equal("Failed to create the Opus encoder: invalid argument")
       }
-      Try(DecoderFloat(Sf8000,4)) match {
+      Try(OpusDecoderFloat(Sf8000, 4)) match {
         case Success(ok) => fail("Float decoder constructor did not fail on bad construction")
         case Failure(f) => f.getMessage should equal("Failed to create the Opus encoder: invalid argument")
       }
     }
 
-    it("encode and decode audio segments as Float types") {
-      Given("a PCM file coded as an array of short integers and a codec pair")
-      enc.reset
-      dec.reset
-      When("the audio is encoded and then decoded")
-      val coded = for (c <- chunksFloat) yield enc(c).get
-      val decoded = for (c <- coded) yield decFloat(c).get
+    it("get and set the encoder parameters (tests opus_encoder_set/get_ctl call only)") {
+      val enc = OpusEncoder(Sf8000, 1)
+      enc.setUseDtx(1)
+      enc.getUseDtx should equal(1)
+      enc.setUseDtx(0)
+      enc.getUseDtx should equal(0)
+    }
 
-      Then("the number of packets in the original, coded and decoded streams should be the same")
-      coded.length should equal(chunksFloat.length)
-      decoded.length should equal(chunksFloat.length)
+    it("get and set decoder parameters (tests opus_decoder_set/get_ctl call only)") {
+      val dec = OpusDecoderShort(Sf8000, 1)
+      dec.setGain(10)
+      dec.getGain should equal(10)
+    }
 
-      And("the decoded packet length should be the same as the coded packet length")
-      decoded.head.length should equal(chunksFloat.head.length)
-
-      And("the decoded audio should sound the same as the original audio")
-      // Break the input and output audio streams into 5ms chunks and compute the energy in each chunk
-      val in = chunksFloat.toArray.flatten.grouped(40).toList
-      val out = decoded.toArray.flatten.grouped(40).toList
-      val eIn = for (a <- in) yield energy(a)
-      val eOut = for (a <- out) yield energy(a)
-      correlate(eIn, eOut) should be > 0.93
+    it("correctly returns error messages for a given error condition") {
+      val msg = opus.Opus.error_string(-3)
+      msg should equal("internal error")
     }
 
     it("constructs decoders and encoders for all frequencies") {
@@ -160,7 +260,7 @@ class ScopusTest extends FunSpec with Matchers with GivenWhenThen with BeforeAnd
         val freqs = List(8000, 12000, 16000, 24000, 48000)
         When("they are constructed for different sample frequencies")
         val e = List(OpusEncoder(Sf8000, 1), OpusEncoder(Sf12000, 1), OpusEncoder(Sf16000, 1), OpusEncoder(Sf24000, 1), OpusEncoder(Sf48000, 1))
-        val d = List(OpusDecoder(Sf8000, 1), OpusDecoder(Sf12000, 1), OpusDecoder(Sf16000, 1), OpusDecoder(Sf24000, 1), OpusDecoder(Sf48000, 1))
+        val d = List(OpusDecoderShort(Sf8000, 1), OpusDecoderShort(Sf12000, 1), OpusDecoderShort(Sf16000, 1), OpusDecoderShort(Sf24000, 1), OpusDecoderShort(Sf48000, 1))
         Then("the encoder structures return the correct sample frequency it was configured for")
         for ((f, t) <- freqs zip e) {
           t.getSampleRate should equal(f)
@@ -176,97 +276,6 @@ class ScopusTest extends FunSpec with Matchers with GivenWhenThen with BeforeAnd
       }
     }
 
-    it("get and set the encoder parameters (tests opus_encoder_set/get_ctl call only)") {
-      enc.setUseDtx(1)
-      enc.getUseDtx should equal(1)
-      enc.setUseDtx(0)
-      enc.getUseDtx should equal(0)
-    }
-
-    it("get and set decoder parameters (tests opus_decoder_set/get_ctl call only)") {
-      dec.setGain(10)
-      dec.getGain should equal(10)
-    }
-
-    it("correctly returns error messages for a given error condition"){
-      val msg = Opus.error_string(-3)
-      msg should equal("internal error")
-    }
-
-    it("decodes erased packets to the specified number of samples") {
-      dec.reset
-      enc.reset
-      dec(enc(chunks.head).get) // Prime the decoder so it get the decoder state
-      dec(chunkSize).get.length should equal(chunkSize)
-    }
-
-    it("decode erased packets for Short data") {
-      enc.reset
-      dec.reset
-      val coded = for (c <- chunks) yield enc(c).get
-      val decoded = // Decode, dropping every 10th packet
-        for {
-          (c, i) <- coded zip (0 until coded.length)
-          p = if (i % 15 == 1) dec(chunkSize) else dec(c)
-        } yield p.get
-      val in = chunks.toArray.flatten.grouped(40).toList
-      val out = decoded.toArray.flatten.grouped(40).toList
-      val eIn = for (a <- in) yield energy(a)
-      val eOut = for (a <- out) yield energy(a)
-      val rho = correlate(eIn, eOut)
-      //writeAudioFile("test-short-erasure.raw",decoded.toArray.flatten)
-      rho should be > 0.91
-    }
-
-    it("decode erased packets for Float data") {
-      enc.reset
-      dec.reset
-      val coded = for (c <- chunksFloat) yield enc(c).get
-      val decoded = // Decode, dropping every 10th packet
-        for {
-          (c, i) <- coded zip (0 until coded.length)
-          p = if (i % 15 == 1) decFloat(chunkSize) else decFloat(c)
-        } yield p.get
-      val in = chunksFloat.toArray.flatten.grouped(40).toList
-      val out = decoded.toArray.flatten.grouped(40).toList
-      val eIn = for (a <- in) yield energy(a)
-      val eOut = for (a <- out) yield energy(a)
-      val rho = correlate(eIn, eOut)
-      rho should be > 0.91
-    }
-  }
-
-  describe("Performance test will") {
-
-    val repeats = 50
-
-    it("meet basic encoder speed requirements") {
-      enc.reset
-      enc.setComplexity(2)
-      val tStart = System.currentTimeMillis()
-      for (i <- 0 until repeats) {
-        for (c <- chunks) enc(c)
-      }
-      val duration = (System.currentTimeMillis() - tStart) / 1000.0 // Seconds
-      val speed = repeats * nSamples / duration / 8000.0 // multiple of real time
-      speed should be > 100.0
-      info(f"Encoder runs at $speed%5.1f times real time")
-    }
-
-    it("meets basic decoder speed requirements") {
-      enc.reset
-      dec.reset
-      val tStart = System.currentTimeMillis()
-      val coded = for (c <- chunks) yield enc(c).get
-      for (i <- 0 until repeats) {
-        for (c <- coded) dec(c)
-      }
-      val duration = (System.currentTimeMillis() - tStart) / 1000.0 // Seconds
-      val speed = repeats * nSamples / duration / 8000.0 // multiple of real time
-      speed should be > 400.0
-      info(f"Decoder runs at $speed%5.1f times real time")
-    }
 
   }
-
 }

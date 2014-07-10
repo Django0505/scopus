@@ -47,7 +47,11 @@ object Speex {
   @native
   def decode_float(decoder: Long, input: Array[Byte], inSize: Int, output: Array[Float], outSize: Int): Int
 
+  @native
+  def encoder_ctl(encoder: Long, command: Int, value: Int): Int
 
+  @native
+  def decoder_ctl(decoder: Long, command: Int, value: Int): Int
 
   /** Set enhancement on/off (decoder only) */
   final val SPEEX_SET_ENH = 0

@@ -12,14 +12,27 @@ trait Codec {
   def cleanup(): Unit
 
   final override def finalize() = cleanup()
+
+  /**
+   * @return A discription of this instance of an encoder or decoder
+   */
+  def getDetail: String
+
+  /**
+   * Reset the underlying codec.
+   */
+  def reset: Int
+
+  /**
+   * @return The sample rate for this codec's instance
+   */
+  def getSampleRate: Int
 }
 
-trait Decoder extends Codec
-
 /**
- *  Decoder for short data types
+ *  Decoder for float data types
  */
-trait DecodeFloat extends Decoder {
+trait DecoderFloat extends Codec {
 
   /**
    * Decode an audio packet to an array of Floats
@@ -39,7 +52,7 @@ trait DecodeFloat extends Decoder {
 /**
  * Decoder for float data types
  */
-trait DecodeShort  extends Decoder {
+trait DecoderShort extends Codec {
 
   /**
    * Decode an audio packet to an array of Shorts
@@ -60,7 +73,7 @@ trait DecodeShort  extends Decoder {
 /**
  * Encoder trait
  */
-trait Encoder extends Codec{
+trait Encoder extends Codec {
 
   /**
    * Encode a block of raw audio  in integer format using the configured encoder

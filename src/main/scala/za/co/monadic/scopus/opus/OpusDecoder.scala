@@ -5,7 +5,7 @@
 package za.co.monadic.scopus.opus
 
 import Opus._
-import za.co.monadic.scopus.{DecodeShort, DecodeFloat, SampleFrequency}
+import za.co.monadic.scopus.{Codec, DecoderShort, DecoderFloat, SampleFrequency}
 import scala.util.{Failure, Success, Try}
 
 /**
@@ -90,7 +90,7 @@ sealed trait OpusBase {
  * @param Fs The sampling frequency required
  * @param channels Number of audio channels required. Must be 1 or 2.
  */
-class DecoderShort(val Fs: SampleFrequency, val channels: Int) extends OpusBase with DecodeShort {
+class OpusDecoderShort(val Fs: SampleFrequency, val channels: Int) extends DecoderShort with OpusBase {
 
   val decodedBuf = new Array[Short](2880 * channels)
   /**
@@ -119,19 +119,22 @@ class DecoderShort(val Fs: SampleFrequency, val channels: Int) extends OpusBase 
     else
       Success(decodedBuf.slice(0, len))
   }
+
+  def getDetail = s"Opus decoder to `short' with sf= ${Fs()}"
+
 }
 
 /**
  * Factory for an Opus decoder that returns Short data
  */
-object OpusDecoder {
+object OpusDecoderShort {
   /**
    * Construct an instance of a decoder that returns audio data as an Array[Short]
    * @param Fs The sample frequency required
    * @param channels The number of channels. Must be 1 or 2
    * @return A Try[] containing a reference to the decoder or an exception if construction fails
    */
-  def apply(Fs: SampleFrequency, channels: Int) = new DecoderShort(Fs, channels)
+  def apply(Fs: SampleFrequency, channels: Int) = new OpusDecoderShort(Fs, channels)
 }
 
 /**
@@ -139,7 +142,7 @@ object OpusDecoder {
  * @param Fs The sampling frequency required
  * @param channels Number of audio channels required. Must be 1 or 2.
  */
-class DecoderFloat(val Fs: SampleFrequency, val channels: Int) extends OpusBase with DecodeFloat {
+class OpusDecoderFloat(val Fs: SampleFrequency, val channels: Int) extends DecoderFloat with OpusBase {
 
   val decodedBuf = new Array[Float](2880 * channels)
 
@@ -164,15 +167,18 @@ class DecoderFloat(val Fs: SampleFrequency, val channels: Int) extends OpusBase 
     else
       Success(decodedBuf.slice(0, len))
   }
+
+  def getDetail = s"Opus decoder to `float' with sf= ${Fs()}"
+
 }
 
-object DecoderFloat {
+object OpusDecoderFloat {
   /**
    * Construct an instance of a decoder that returns audio data as an Array[Short]
    * @param Fs The sample frequency required
    * @param channels The number of channels. Must be 1 or 2
    * @return A Try[] containing a reference to the decoder or an exception if construction fails
    */
-  def apply(Fs: SampleFrequency, channels: Int) = new DecoderFloat(Fs, channels)
+  def apply(Fs: SampleFrequency, channels: Int) = new OpusDecoderFloat(Fs, channels)
 }
 

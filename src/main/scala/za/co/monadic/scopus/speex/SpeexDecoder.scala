@@ -1,7 +1,7 @@
 package za.co.monadic.scopus.speex
 
 import za.co.monadic.scopus.speex.Speex._
-import za.co.monadic.scopus.{SampleFrequency, DecodeFloat, DecodeShort}
+import za.co.monadic.scopus.{Codec, SampleFrequency, DecoderFloat, DecoderShort}
 
 import scala.util.{Success, Failure, Try}
 
@@ -15,18 +15,20 @@ sealed trait SpeexBase {
   if (decoder <= 0) throw new RuntimeException("Failed to create Speex decoder state")
   var clean = false
 
+  def reset() = decoder_ctl(decoder,SPEEX_RESET_STATE,0)
+
+  def getSampleRate = decoder_ctl(decoder,SPEEX_GET_SAMPLING_RATE,0)
   def cleanup() = {
     if (!clean) {
       decoder_destroy(decoder)
     }
   }
-
 }
 
 /**
  *
  */
-class SpeexDecoder(val sampleFreq: SampleFrequency, val enhance: Boolean) extends SpeexBase with DecodeShort {
+class SpeexDecoderShort(val sampleFreq: SampleFrequency, val enhance: Boolean) extends SpeexBase with DecoderShort {
 
   val decodedBuf = new Array[Short](1024)
   /**
@@ -55,13 +57,16 @@ class SpeexDecoder(val sampleFreq: SampleFrequency, val enhance: Boolean) extend
     else
       Success(decodedBuf.slice(0, len))
   }
+
+  def getDetail = s"Speex decoder to `short' with sf= ${sampleFreq()}"
+
 }
 
-object SpeexDecoder {
-  def apply(sampleFreq: SampleFrequency, enhance: Boolean) = new SpeexDecoder(sampleFreq,enhance)
+object SpeexDecoderShort {
+  def apply(sampleFreq: SampleFrequency, enhance: Boolean = false) = new SpeexDecoderShort(sampleFreq,enhance)
 }
 
-class SpeexDecoderFloat(val sampleFreq: SampleFrequency, val enhance: Boolean) extends SpeexBase with DecodeFloat {
+class SpeexDecoderFloat(val sampleFreq: SampleFrequency, val enhance: Boolean) extends SpeexBase with DecoderFloat {
 
   val decodedBuf = new Array[Float](1024)
   /**
@@ -90,8 +95,11 @@ class SpeexDecoderFloat(val sampleFreq: SampleFrequency, val enhance: Boolean) e
     else
       Success(decodedBuf.slice(0, len))
   }
+
+  def getDetail = s"Speex decoder to `float' with sf= ${sampleFreq()}"
+
 }
 
 object SpeexDecoderFloat {
-  def apply(sampleFreq: SampleFrequency, enhance: Boolean) = new SpeexDecoderFloat(sampleFreq,enhance)
+  def apply(sampleFreq: SampleFrequency, enhance: Boolean = false) = new SpeexDecoderFloat(sampleFreq,enhance)
 }

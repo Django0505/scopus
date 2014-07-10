@@ -31,6 +31,8 @@ class OpusEncoder(sampleFreq: SampleFrequency, channels: Int, app: Application, 
   }
   var clean = false
 
+  def getDetail = s"Opus encoder with sf= ${sampleFreq()}"
+
   /**
    * Encode a block of raw audio  in integer format using the configured encoder
    * @param audio Audio data arranged as a contiguous block interleaved array of short integers
