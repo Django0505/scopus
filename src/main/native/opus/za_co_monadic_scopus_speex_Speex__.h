@@ -13,6 +13,16 @@ JNIEXPORT void JNICALL Java_za_co_monadic_scopus_speex_Speex_00024_encoder_1dest
 
 JNIEXPORT jstring JNICALL Java_za_co_monadic_scopus_speex_Speex_00024_get_1version_1string(JNIEnv *env, jobject clazz);
 
+JNIEXPORT jlong JNICALL Java_za_co_monadic_scopus_speex_Speex_00024_decoder_1create(JNIEnv *env, jobject clazz, jint modeID, int enhance);
+
+JNIEXPORT void JNICALL Java_za_co_monadic_scopus_speex_Speex_00024_decoder_1destroy(JNIEnv *env, jobject clazz, jlong state_ptr);
+
+JNIEXPORT jint JNICALL Java_za_co_monadic_scopus_speex_Speex_00024_decode_1float
+   (JNIEnv *env, jobject clazz, jlong decoder, jbyteArray input, jint len_in, jfloatArray decoded, jint len_out);
+
+JNIEXPORT jint JNICALL Java_za_co_monadic_scopus_speex_Speex_00024_decode_1short
+    (JNIEnv *env, jobject clazz, jlong decoder, jbyteArray input, jint len_in, jshortArray decoded, jint len_out);
+
 #ifdef __cplusplus
 }
 #endif

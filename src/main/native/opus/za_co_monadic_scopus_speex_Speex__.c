@@ -10,12 +10,13 @@
 typedef struct {
     void *st;
     SpeexBits bits;
-} encoder_state;
+} codec_state;
+
 
 
 JNIEXPORT jlong JNICALL Java_za_co_monadic_scopus_speex_Speex_00024_encoder_1create
     (JNIEnv *env, jobject clazz, jint modeID) {
-    encoder_state* state = (encoder_state*)malloc(sizeof(encoder_state));
+    codec_state* state = (codec_state*)malloc(sizeof(codec_state));
     switch (modeID) {
         case SPEEX_MODEID_NB:
             state->st = speex_encoder_init(&speex_nb_mode);
@@ -37,7 +38,7 @@ JNIEXPORT jlong JNICALL Java_za_co_monadic_scopus_speex_Speex_00024_encoder_1cre
 JNIEXPORT jint JNICALL Java_za_co_monadic_scopus_speex_Speex_00024_encode_1short
     (JNIEnv *env, jobject clazz, jlong encoder, jshortArray input, jint len_in, jbyteArray coded, jint len_out) {
 
-    encoder_state *state = (encoder_state*)encoder;
+    codec_state *state = (codec_state*)encoder;
     jshort *in_ptr;
     jbyte *cod_ptr;
     jint ret;
@@ -59,7 +60,7 @@ JNIEXPORT jint JNICALL Java_za_co_monadic_scopus_speex_Speex_00024_encode_1short
 
 JNIEXPORT jint JNICALL Java_za_co_monadic_scopus_speex_Speex_00024_encode_1float
     (JNIEnv *env, jobject clazz, jlong encoder, jfloatArray input, jint len_in, jbyteArray coded, jint len_out) {
-    encoder_state *state = (encoder_state*)encoder;
+    codec_state *state = (codec_state*)encoder;
     jfloat *in_ptr;
     jbyte *cod_ptr;
     jint ret;
@@ -81,7 +82,7 @@ JNIEXPORT jint JNICALL Java_za_co_monadic_scopus_speex_Speex_00024_encode_1float
 
 JNIEXPORT void JNICALL Java_za_co_monadic_scopus_speex_Speex_00024_encoder_1destroy
     (JNIEnv *env, jobject clazz, jlong state_ptr) {
-    encoder_state *state = (encoder_state*)(state_ptr);
+    codec_state *state = (codec_state*)(state_ptr);
     speex_encoder_destroy(state->st);
     speex_bits_destroy(&(state->bits));
     free(state);
@@ -92,5 +93,86 @@ JNIEXPORT jstring JNICALL Java_za_co_monadic_scopus_speex_Speex_00024_get_1versi
     const char* version;
     speex_lib_ctl(SPEEX_LIB_GET_VERSION_STRING, (void*)&version);
     return (*env)->NewStringUTF(env, version);
+}
+
+
+/* Decoders */
+
+JNIEXPORT jlong JNICALL Java_za_co_monadic_scopus_speex_Speex_00024_decoder_1create
+    (JNIEnv *env, jobject clazz, jint modeID, int enhance) {
+    codec_state* state = (codec_state*)malloc(sizeof(codec_state));
+    switch (modeID) {
+        case SPEEX_MODEID_NB:
+            state->st = speex_decoder_init(&speex_nb_mode);
+            break;
+        case SPEEX_MODEID_WB:
+            state->st = speex_decoder_init(&speex_wb_mode);
+            break;
+        case SPEEX_MODEID_UWB:
+            state->st = speex_decoder_init(&speex_uwb_mode);
+            break;
+        default:
+            free(state);
+            return (jlong) -1;
+    }
+    speex_bits_init(&(state->bits));
+    speex_decoder_ctl(state->st, SPEEX_SET_ENH, &enhance);
+    return (jlong) state;
+}
+
+
+JNIEXPORT void JNICALL Java_za_co_monadic_scopus_speex_Speex_00024_decoder_1destroy
+    (JNIEnv *env, jobject clazz, jlong state_ptr) {
+    codec_state *state = (codec_state*)(state_ptr);
+    speex_decoder_destroy(state->st);
+    speex_bits_destroy(&(state->bits));
+    free(state);
+}
+
+
+JNIEXPORT jint JNICALL Java_za_co_monadic_scopus_speex_Speex_00024_decode_1float
+    (JNIEnv *env, jobject clazz, jlong decoder, jbyteArray input, jint len_in, jfloatArray decoded, jint len_out) {
+    codec_state *state = (codec_state*)decoder;
+    jbyte *in_ptr = 0;
+    jfloat *dec_ptr = 0;
+    jint ret = 0;
+    if ((long) input != 0 && len_in != 0) {
+        in_ptr = (*env)->GetPrimitiveArrayCritical(env, input, 0);
+        if (in_ptr == 0) return -1;
+    }
+    dec_ptr = (*env)->GetPrimitiveArrayCritical(env, decoded, 0);
+    if (dec_ptr == 0) {
+	    if (in_ptr != 0) (*env)->ReleasePrimitiveArrayCritical(env, input, in_ptr, 0);
+    	return -1;
+    }
+    speex_bits_read_from(&(state->bits), (char *)in_ptr, len_in);
+    speex_decode(state->st, &(state->bits), dec_ptr);
+    speex_decoder_ctl(state->st, SPEEX_GET_FRAME_SIZE, &ret);
+    (*env)->ReleasePrimitiveArrayCritical(env, decoded, dec_ptr, 0);
+    (*env)->ReleasePrimitiveArrayCritical(env, input, in_ptr, 0);
+    return ret;
+}
+
+JNIEXPORT jint JNICALL Java_za_co_monadic_scopus_speex_Speex_00024_decode_1short
+    (JNIEnv *env, jobject clazz, jlong decoder, jbyteArray input, jint len_in, jshortArray decoded, jint len_out) {
+    codec_state *state = (codec_state*)decoder;
+    jbyte *in_ptr = 0;
+    jshort *dec_ptr = 0;
+    jint ret = 0;
+    if ((long) input != 0 && len_in != 0) {
+        in_ptr = (*env)->GetPrimitiveArrayCritical(env, input, 0);
+        if (in_ptr == 0) return -1;
+    }
+    dec_ptr = (*env)->GetPrimitiveArrayCritical(env, decoded, 0);
+    if (dec_ptr == 0) {
+	    if (in_ptr != 0) (*env)->ReleasePrimitiveArrayCritical(env, input, in_ptr, 0);
+    	return -1;
+    }
+    speex_bits_read_from(&(state->bits), (char *)in_ptr, len_in);
+    speex_decode_int(state->st, &(state->bits), dec_ptr);
+    speex_decoder_ctl(state->st, SPEEX_GET_FRAME_SIZE, &ret);
+    (*env)->ReleasePrimitiveArrayCritical(env, decoded, dec_ptr, 0);
+    (*env)->ReleasePrimitiveArrayCritical(env, input, in_ptr, 0);
+    return ret;
 }
 

@@ -9,15 +9,8 @@ import Speex._
  */
 class SpeexEncoder(sampleFreq: SampleFrequency) extends Encoder {
 
-  // Speex can do other frequencies, but these are the best supported ones.
-  private val mode = sampleFreq match {
-    case Sf8000  => SPEEX_MODEID_NB
-    case Sf16000 => SPEEX_MODEID_WB
-    case Sf32000 => SPEEX_MODEID_UWB
-    case s:SampleFrequency => throw new RuntimeException(s"Invalid sampling frequency ($s) for the Speex codec")
-  }
 
-  val state = encoder_create(mode)
+  val state = encoder_create(getMode(sampleFreq))
   if (state <= 0) throw new RuntimeException("Failed to construct a Speex encoder")
   var clean = false
 

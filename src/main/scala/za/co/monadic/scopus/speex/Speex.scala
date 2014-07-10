@@ -1,11 +1,18 @@
 package za.co.monadic.scopus.speex
 
-import za.co.monadic.scopus.Libraries
+import za.co.monadic.scopus._
 
 /**
  *
  */
 object Speex {
+
+  def getMode(sf: SampleFrequency) =sf match {
+      case Sf8000  => SPEEX_MODEID_NB
+      case Sf16000 => SPEEX_MODEID_WB
+      case Sf32000 => SPEEX_MODEID_UWB
+      case s:SampleFrequency => throw new RuntimeException(s"Invalid sampling frequency ($s) for the Speex codec")
+    }
 
   // Ensures that the libraries are loaded as Scala only initialises objects
   // if they are called...
@@ -21,6 +28,25 @@ object Speex {
 
   @native
   def get_version_string(): String
+
+  /**
+   * Create a decoder state
+   * @param mode Speex mode
+   * @param enhance 1 to enable perceptual enhancement. 0 otherwise.
+   * @return
+   */
+  @native
+  def decoder_create(mode: Int, enhance: Int): Long
+
+  @native
+  def decoder_destroy(state: Long)
+
+  @native
+  def decode_short(decoder: Long, input: Array[Byte], inSize: Int, output: Array[Short], outSize: Int): Int
+
+  @native
+  def decode_float(decoder: Long, input: Array[Byte], inSize: Int, output: Array[Float], outSize: Int): Int
+
 
 
   /** Set enhancement on/off (decoder only) */

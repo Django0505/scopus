@@ -1,7 +1,7 @@
 package za.co.monadic.scopus
 
 import za.co.monadic.scopus.opus.{OpusEncoder, OpusDecoder}
-import za.co.monadic.scopus.speex.{SpeexEncoder, Speex}
+import za.co.monadic.scopus.speex.{SpeexDecoder, SpeexEncoder, Speex}
 
 import scala.util.Try
 
@@ -25,6 +25,10 @@ object Stub extends App {
   println(Speex.get_version_string())
 
   val senc = SpeexEncoder(Sf8000)
+  senc.cleanup()
+
+  val sdec = SpeexDecoder(Sf8000,true)
+  sdec.cleanup()
 
   // Send decoded packet off
 
