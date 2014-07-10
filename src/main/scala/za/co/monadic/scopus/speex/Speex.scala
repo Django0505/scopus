@@ -11,8 +11,13 @@ object Speex {
   // if they are called...
   Libraries()
 
+  // These map closely to the speex C library functions. Consult the speex documentation for more details
   @native
-  def encoder_create(Fs: Int, mode: Int): Long
+  def encoder_create(mode: Int): Long
+
+  // These map closely to the speex C library functions. Consult the speex documentation for more details
+  @native
+  def encoder_destroy(state: Long)
 
   @native
   def get_version_string(): String

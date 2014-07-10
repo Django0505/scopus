@@ -5,8 +5,7 @@
 package za.co.monadic.scopus.opus
 
 import Opus._
-import za.co.monadic.scopus.{DecodeShort, DecodeFloat, SampleFrequency}
-
+import za.co.monadic.scopus.{Codec, DecodeShort, DecodeFloat, SampleFrequency}
 import scala.util.{Failure, Success, Try}
 
 /**
@@ -38,8 +37,6 @@ sealed trait OpusBase {
       clean = true
     }
   }
-
-  override def finalize() = cleanup()
 
   private def getter(command: Int): Int = {
     assert(command % 2 == 1) // Getter commands are all odd
@@ -127,7 +124,7 @@ class DecoderShort(val Fs: SampleFrequency, val channels: Int) extends OpusBase 
 /**
  * Factory for an Opus decoder that returns Short data
  */
-object Decoder {
+object OpusDecoder {
   /**
    * Construct an instance of a decoder that returns audio data as an Array[Short]
    * @param Fs The sample frequency required

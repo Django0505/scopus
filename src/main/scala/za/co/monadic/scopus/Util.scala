@@ -29,6 +29,10 @@ object Sf24000 extends SampleFrequency {
   def apply(): Int = 24000
 }
 
+object Sf32000 extends SampleFrequency {
+  def apply(): Int = 32000
+}
+
 object Sf48000 extends SampleFrequency {
   def apply(): Int = 48000
 }

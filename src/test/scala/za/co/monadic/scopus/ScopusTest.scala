@@ -4,7 +4,7 @@
  */
 import java.io._
 import org.scalatest._
-import za.co.monadic.scopus.opus.{Opus, OpusEncoder, DecoderFloat, Decoder}
+import za.co.monadic.scopus.opus.{Opus, OpusEncoder, DecoderFloat, OpusDecoder}
 import scala.util.{Try, Failure, Success}
 import za.co.monadic.scopus._
 import Numeric.Implicits._
@@ -71,7 +71,7 @@ class ScopusTest extends FunSpec with Matchers with GivenWhenThen with BeforeAnd
   val chunksFloat = audioFloat.slice(0, nSamples).grouped(chunkSize).toList
 
   val enc = Try(OpusEncoder(Sf8000, 1)) getOrElse fail("Encoder construction failed")
-  val dec = Try(Decoder(Sf8000, 1)) getOrElse fail("Float decoder construction failed")
+  val dec = Try(OpusDecoder(Sf8000, 1)) getOrElse fail("Float decoder construction failed")
   val decFloat = Try(DecoderFloat(Sf8000,1))getOrElse fail("Float decoder construction failed")
 
   override def afterAll() = {
@@ -120,7 +120,7 @@ class ScopusTest extends FunSpec with Matchers with GivenWhenThen with BeforeAnd
         case Success(ok) => fail("Encoder constructor did not fail on bad construction")
         case Failure(f) => f.getMessage should equal("requirement failed: Buffer size must be positive")
       }
-      Try(Decoder(Sf8000, 4)) match {
+      Try(OpusDecoder(Sf8000, 4)) match {
         case Success(ok) => fail("Short decoder constructor did not fail on bad construction")
         case Failure(f) => f.getMessage should equal("Failed to create the Opus encoder: invalid argument")
       }
@@ -160,7 +160,7 @@ class ScopusTest extends FunSpec with Matchers with GivenWhenThen with BeforeAnd
         val freqs = List(8000, 12000, 16000, 24000, 48000)
         When("they are constructed for different sample frequencies")
         val e = List(OpusEncoder(Sf8000, 1), OpusEncoder(Sf12000, 1), OpusEncoder(Sf16000, 1), OpusEncoder(Sf24000, 1), OpusEncoder(Sf48000, 1))
-        val d = List(Decoder(Sf8000, 1), Decoder(Sf12000, 1), Decoder(Sf16000, 1), Decoder(Sf24000, 1), Decoder(Sf48000, 1))
+        val d = List(OpusDecoder(Sf8000, 1), OpusDecoder(Sf12000, 1), OpusDecoder(Sf16000, 1), OpusDecoder(Sf24000, 1), OpusDecoder(Sf48000, 1))
         Then("the encoder structures return the correct sample frequency it was configured for")
         for ((f, t) <- freqs zip e) {
           t.getSampleRate should equal(f)

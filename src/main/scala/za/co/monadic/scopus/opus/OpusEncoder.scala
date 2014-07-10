@@ -68,8 +68,6 @@ class OpusEncoder(sampleFreq: SampleFrequency, channels: Int, app: Application, 
     }
   }
 
-  override def finalize() = cleanup()
-
   def reset = encoder_set_ctl(encoder, OPUS_RESET_STATE, 0)
 
   private def setter(command: Integer, parameter: Integer): Unit = {

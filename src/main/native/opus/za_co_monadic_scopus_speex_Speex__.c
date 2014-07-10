@@ -28,10 +28,55 @@ JNIEXPORT jlong JNICALL Java_za_co_monadic_scopus_speex_Speex_00024_encoder_1cre
             break;
         default:
             free(state);
-            return (jlong) 0;
+            return (jlong) -1;
     }
     speex_bits_init(&(state->bits));
     return (jlong) state;
+}
+
+JNIEXPORT jint JNICALL Java_za_co_monadic_scopus_speex_Speex_00024_encode_1short
+    (JNIEnv *env, jobject clazz, jlong encoder, jshortArray input, jint len_in, jbyteArray coded, jint len_out) {
+
+    encoder_state *state = (encoder_state*)encoder;
+    jshort *in_ptr;
+    jbyte *cod_ptr;
+    jint ret;
+
+    in_ptr = (*env)->GetPrimitiveArrayCritical(env, input, 0);
+    if (in_ptr == 0) return -1;
+    cod_ptr = (*env)->GetPrimitiveArrayCritical(env, coded, 0);
+    if (cod_ptr == 0) {
+	    (*env)->ReleasePrimitiveArrayCritical(env, input, in_ptr, 0);
+	    return -1;
+    }
+    speex_bits_reset(&(state->bits));
+    speex_encode_int(state->st,in_ptr, &(state->bits));
+    ret = speex_bits_write(&(state->bits),(char *)cod_ptr,len_out);
+    (*env)->ReleasePrimitiveArrayCritical(env, coded, cod_ptr, 0);
+    (*env)->ReleasePrimitiveArrayCritical(env, input, in_ptr, 0);
+    return ret;
+}
+
+JNIEXPORT jint JNICALL Java_za_co_monadic_scopus_speex_Speex_00024_encode_1float
+    (JNIEnv *env, jobject clazz, jlong encoder, jfloatArray input, jint len_in, jbyteArray coded, jint len_out) {
+    encoder_state *state = (encoder_state*)encoder;
+    jfloat *in_ptr;
+    jbyte *cod_ptr;
+    jint ret;
+
+    in_ptr = (*env)->GetPrimitiveArrayCritical(env, input, 0);
+    if (in_ptr == 0) return -1;
+    cod_ptr = (*env)->GetPrimitiveArrayCritical(env, coded, 0);
+    if (cod_ptr == 0) {
+	    (*env)->ReleasePrimitiveArrayCritical(env, input, in_ptr, 0);
+	    return -1;
+    }
+    speex_bits_reset(&(state->bits));
+    speex_encode(state->st,in_ptr, &(state->bits));
+    ret = speex_bits_write(&(state->bits),(char *)cod_ptr,len_out);
+    (*env)->ReleasePrimitiveArrayCritical(env, coded, cod_ptr, 0);
+    (*env)->ReleasePrimitiveArrayCritical(env, input, in_ptr, 0);
+    return ret;
 }
 
 JNIEXPORT void JNICALL Java_za_co_monadic_scopus_speex_Speex_00024_encoder_1destroy
