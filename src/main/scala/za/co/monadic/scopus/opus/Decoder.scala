@@ -2,16 +2,18 @@
  * Copyright David Weber 2014
  * Released under the Creative Commons License (http://creativecommons.org/licenses/by/4.0/legalcode)
  */
-package za.co.monadic.scopus
+package za.co.monadic.scopus.opus
 
-import za.co.monadic.scopus.Opus._
-import scala.util.{Failure, Try, Success}
+import Opus._
+import za.co.monadic.scopus.{DecodeShort, DecodeFloat, SampleFrequency}
+
+import scala.util.{Failure, Success, Try}
 
 /**
  * Decoder base class which allows specialisations for the different return types offered by
  * the Opus system.
  */
-sealed trait DecoderBase {
+sealed trait OpusBase {
 
   val Fs: SampleFrequency
   val channels: Int
@@ -91,10 +93,9 @@ sealed trait DecoderBase {
  * @param Fs The sampling frequency required
  * @param channels Number of audio channels required. Must be 1 or 2.
  */
-class DecoderShort(val Fs: SampleFrequency, val channels: Int) extends DecoderBase {
+class DecoderShort(val Fs: SampleFrequency, val channels: Int) extends OpusBase with DecodeShort {
 
   val decodedBuf = new Array[Short](2880 * channels)
-
   /**
    * Decode an audio packet to an array of Shorts
    * @param compressedAudio The incoming audio packet
@@ -141,15 +142,10 @@ object Decoder {
  * @param Fs The sampling frequency required
  * @param channels Number of audio channels required. Must be 1 or 2.
  */
-class DecoderFloat(val Fs: SampleFrequency, val channels: Int) extends DecoderBase {
+class DecoderFloat(val Fs: SampleFrequency, val channels: Int) extends OpusBase with DecodeFloat {
 
   val decodedBuf = new Array[Float](2880 * channels)
 
-  /**
-   * Decode an audio packet to an array of Floats
-   * @param compressedAudio The incoming audio packet
-   * @return A Try containing the decoded audio packet in Float format
-   */
   def apply(compressedAudio: Array[Byte]): Try[Array[Float]] = {
     val len = decode_float(decoder, compressedAudio, compressedAudio.length, decodedBuf, bufferLen, fec)
     if (len < 0)

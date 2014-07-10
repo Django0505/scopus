@@ -2,10 +2,12 @@
  * Copyright David Weber 2014
  * Released under the Creative Commons License (http://creativecommons.org/licenses/by/4.0/legalcode)
  */
-package za.co.monadic.scopus
+package za.co.monadic.scopus.opus
 
-import za.co.monadic.scopus.Opus._
-import scala.util.{Success, Failure, Try}
+import Opus._
+import za.co.monadic.scopus.{Encoder, Application, SampleFrequency, Voip}
+
+import scala.util.{Failure, Success, Try}
 
 /**
  * Wrapper around the Opus codec's encoder subsystem.
@@ -19,7 +21,7 @@ import scala.util.{Success, Failure, Try}
  * @param bufferSize The reserved size of the buffer to which compressed data are written.
  *                   The default should be more than sufficient
  */
-class Encoder(sampleFreq: SampleFrequency, channels: Int, app: Application, bufferSize: Int = 8192) {
+class OpusEncoder(sampleFreq: SampleFrequency, channels: Int, app: Application, bufferSize: Int = 8192) extends Encoder {
   require(bufferSize > 0, "Buffer size must be positive")
   val error = Array[Int](0)
   val decodePtr = new Array[Byte](bufferSize)
@@ -150,7 +152,7 @@ class Encoder(sampleFreq: SampleFrequency, channels: Int, app: Application, buff
 
 }
 
-object Encoder {
+object OpusEncoder {
   /**
    * Factory for an encoder instance.
    * @param sampleFreq THe required sampling frequency
@@ -161,5 +163,5 @@ object Encoder {
    * @return A Try[Array[Byte]) containing a reference to the encoder object
    */
   def apply(sampleFreq: SampleFrequency, channels: Int, app: Application = Voip, bufferSize: Int = 8192) =
-    new Encoder(sampleFreq,channels, app, bufferSize)
+    new OpusEncoder(sampleFreq,channels, app, bufferSize)
 }

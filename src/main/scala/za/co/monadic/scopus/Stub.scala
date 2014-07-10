@@ -1,5 +1,8 @@
 package za.co.monadic.scopus
 
+import za.co.monadic.scopus.opus.{OpusEncoder, Decoder}
+import za.co.monadic.scopus.speex.Speex
+
 import scala.util.Try
 
 /**
@@ -7,7 +10,7 @@ import scala.util.Try
  */
 object Stub extends App {
 
-  val enc = Encoder(Sf8000, 1, Audio)
+  val enc = OpusEncoder(Sf8000, 1, Audio)
   enc.setUseDtx(1)
   // Transmit special short packets if silence is detected
 

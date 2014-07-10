@@ -8,6 +8,8 @@ import java.util.UUID
 import java.io.{FileOutputStream, File}
 import java.nio.channels.Channels
 
+import za.co.monadic.scopus.opus.Opus
+
 /**
  * General loader for dynamic libraries from the resources directory in the jar file.
  * It copies the required library from the jar to the target temporary directory and then

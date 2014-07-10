@@ -4,7 +4,8 @@
  */
 package za.co.monadic.scopus
 
-import za.co.monadic.scopus.Opus._
+import za.co.monadic.scopus.opus.Opus
+import Opus._
 /**
  * Base class for supported sample frequencies
  */

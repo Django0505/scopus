@@ -1,4 +1,6 @@
-package za.co.monadic.scopus
+package za.co.monadic.scopus.speex
+
+import za.co.monadic.scopus.Libraries
 
 /**
  *

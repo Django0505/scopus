@@ -1,5 +1,8 @@
 package za.co.monadic.scopus
 
+import za.co.monadic.scopus.opus.Opus
+import za.co.monadic.scopus.speex.Speex
+
 /**
  * Load all the native libraries
  */

@@ -2,7 +2,7 @@
  * Copyright David Weber 2014
  * Released under the Creative Commons License (http://creativecommons.org/licenses/by/4.0/legalcode)
  */
-#include "za_co_monadic_scopus_Speex__.h"
+#include "za_co_monadic_scopus_speex_Speex__.h"
 #include <speex/speex.h>
 #include <stdlib.h>
 
@@ -13,7 +13,7 @@ typedef struct {
 } encoder_state;
 
 
-JNIEXPORT jlong JNICALL Java_za_co_monadic_scopus_Speex_00024_encoder_1create
+JNIEXPORT jlong JNICALL Java_za_co_monadic_scopus_speex_Speex_00024_encoder_1create
     (JNIEnv *env, jobject clazz, jint modeID) {
     encoder_state* state = (encoder_state*)malloc(sizeof(encoder_state));
     switch (modeID) {
@@ -34,7 +34,7 @@ JNIEXPORT jlong JNICALL Java_za_co_monadic_scopus_Speex_00024_encoder_1create
     return (jlong) state;
 }
 
-JNIEXPORT void JNICALL Java_za_co_monadic_scopus_Speex_00024_encoder_1destroy
+JNIEXPORT void JNICALL Java_za_co_monadic_scopus_speex_Speex_00024_encoder_1destroy
     (JNIEnv *env, jobject clazz, jlong state_ptr) {
     encoder_state *state = (encoder_state*)(state_ptr);
     speex_encoder_destroy(state->st);
@@ -42,7 +42,7 @@ JNIEXPORT void JNICALL Java_za_co_monadic_scopus_Speex_00024_encoder_1destroy
     free(state);
 }
 
-JNIEXPORT jstring JNICALL Java_za_co_monadic_scopus_Speex_00024_get_1version_1string
+JNIEXPORT jstring JNICALL Java_za_co_monadic_scopus_speex_Speex_00024_get_1version_1string
     (JNIEnv *env, jobject clazz) {
     const char* version;
     speex_lib_ctl(SPEEX_LIB_GET_VERSION_STRING, (void*)&version);

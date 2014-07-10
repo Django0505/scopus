@@ -4,6 +4,7 @@
  */
 import java.io._
 import org.scalatest._
+import za.co.monadic.scopus.opus.{Opus, OpusEncoder, DecoderFloat, Decoder}
 import scala.util.{Try, Failure, Success}
 import za.co.monadic.scopus._
 import Numeric.Implicits._
@@ -69,7 +70,7 @@ class ScopusTest extends FunSpec with Matchers with GivenWhenThen with BeforeAnd
   val chunks = audio.slice(0, nSamples).grouped(chunkSize).toList
   val chunksFloat = audioFloat.slice(0, nSamples).grouped(chunkSize).toList
 
-  val enc = Try(Encoder(Sf8000, 1)) getOrElse fail("Encoder construction failed")
+  val enc = Try(OpusEncoder(Sf8000, 1)) getOrElse fail("Encoder construction failed")
   val dec = Try(Decoder(Sf8000, 1)) getOrElse fail("Float decoder construction failed")
   val decFloat = Try(DecoderFloat(Sf8000,1))getOrElse fail("Float decoder construction failed")
 
@@ -111,11 +112,11 @@ class ScopusTest extends FunSpec with Matchers with GivenWhenThen with BeforeAnd
 
     it("Fails if the encoder and decoder constructors throw") {
       // cannot build 4 channel decoders like this
-      Try(Encoder(Sf8000, 4)) match {
+      Try(OpusEncoder(Sf8000, 4)) match {
         case Success(ok) => fail("Encoder constructor did not fail on bad construction")
         case Failure(f) => f.getMessage should equal("Failed to create the Opus encoder: invalid argument")
       }
-      Try(Encoder(Sf8000, 1, Voip, -1 )) match {
+      Try(OpusEncoder(Sf8000, 1, Voip, -1 )) match {
         case Success(ok) => fail("Encoder constructor did not fail on bad construction")
         case Failure(f) => f.getMessage should equal("requirement failed: Buffer size must be positive")
       }
@@ -158,7 +159,7 @@ class ScopusTest extends FunSpec with Matchers with GivenWhenThen with BeforeAnd
         Given("a set of sampling frequencies for the encoders and decoders")
         val freqs = List(8000, 12000, 16000, 24000, 48000)
         When("they are constructed for different sample frequencies")
-        val e = List(Encoder(Sf8000, 1), Encoder(Sf12000, 1), Encoder(Sf16000, 1), Encoder(Sf24000, 1), Encoder(Sf48000, 1))
+        val e = List(OpusEncoder(Sf8000, 1), OpusEncoder(Sf12000, 1), OpusEncoder(Sf16000, 1), OpusEncoder(Sf24000, 1), OpusEncoder(Sf48000, 1))
         val d = List(Decoder(Sf8000, 1), Decoder(Sf12000, 1), Decoder(Sf16000, 1), Decoder(Sf24000, 1), Decoder(Sf48000, 1))
         Then("the encoder structures return the correct sample frequency it was configured for")
         for ((f, t) <- freqs zip e) {
