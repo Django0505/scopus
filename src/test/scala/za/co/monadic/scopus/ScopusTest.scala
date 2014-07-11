@@ -6,7 +6,7 @@
 import java.io._
 import org.scalatest._
 import za.co.monadic.scopus.opus.{OpusDecoderShort, OpusDecoderFloat, OpusEncoder}
-import za.co.monadic.scopus.speex.{SpeexDecoderShort, SpeexDecoderFloat, SpeexEncoder}
+import za.co.monadic.scopus.speex.{SpeexEncoder, SpeexDecoderFloat, SpeexDecoderShort}
 import scala.util.{Try, Failure, Success}
 import za.co.monadic.scopus._
 import Numeric.Implicits._
@@ -73,13 +73,11 @@ class ScopusTest extends FunSpec with Matchers with GivenWhenThen with BeforeAnd
   val chunksFloat = audioFloat.slice(0, nSamples).grouped(chunkSize).toList
 
   val codecs = List(
-    /*("Speex", SpeexEncoder(Sf8000), SpeexDecoderShort(Sf8000), SpeexDecoderFloat(Sf8000)),*/
-    ("Opus", OpusEncoder(Sf8000, 1), OpusDecoderShort(Sf8000, 1), OpusDecoderFloat(Sf8000, 1)))
+    ("Speex", SpeexEncoder(Sf8000), SpeexDecoderShort(Sf8000), SpeexDecoderFloat(Sf8000))/*
+    ("Opus", OpusEncoder(Sf8000, 1), OpusDecoderShort(Sf8000, 1), OpusDecoderFloat(Sf8000, 1))*/)
 
 
-  for ((t, e, d, df) <- codecs) testCommon(t, e, d, df)
-
-  def testCommon(desc: String, enc: Encoder, dec: DecoderShort, decFloat: DecoderFloat) {
+  for ((desc, enc, dec, decFloat) <- codecs)  {
 
     describe(s"$desc codec can") {
 

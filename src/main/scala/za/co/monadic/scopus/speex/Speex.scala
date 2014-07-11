@@ -27,10 +27,17 @@ object Speex {
   def encoder_destroy(state: Long)
 
   @native
+  def encode_short(encoder: Long, input: Array[Short], inSize: Int, output: Array[Byte], outSize: Int): Int
+
+  @native
+  def encode_float(encoder: Long, input: Array[Float], inSize: Int, output: Array[Byte], outSize: Int): Int
+
+  @native
   def get_version_string(): String
 
   /**
-   * Create a decoder state
+   * Create a decoder state. This differs from the C API because we set up both the encoder and
+   * the "Bits" structure.
    * @param mode Speex mode
    * @param enhance 1 to enable perceptual enhancement. 0 otherwise.
    * @return
