@@ -12,7 +12,7 @@ object Libraries {
   LibLoader.getOsArch match {
     case "Linux/amd64" =>
       LibLoader("libopus.so.0", load = false) // Don't load this as it is dynamically found by the linker in Linux
-      LibLoader("libspeex.so.1.5.0", load = false)
+      LibLoader("libspeex.so.1", load = false)
       LibLoader("libjni_opus.so")
     case "Linux/i386" =>
       LibLoader("libopus.so.0", load = false)

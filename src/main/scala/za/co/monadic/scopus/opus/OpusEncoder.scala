@@ -85,6 +85,17 @@ class OpusEncoder(sampleFreq: SampleFrequency, channels: Int, app: Application, 
     if (err != OPUS_OK) throw new RuntimeException(s"opus_encoder_ctl getter failed for command $command: ${error_string(err)}")
     result(0)
   }
+  /**
+   * Set the complexity of the encoder. This has no effect if the encoder does not support
+   * complexity settings
+   * @param c A value between 0 and 10 indicating the encoder complexity.
+   * @return A reference to the updated encoder
+   */
+  override def complexity(c: Int): Encoder = {
+    require((c >= 0) && (c <= 10))
+    setComplexity(c)
+    this
+  }
 
   def setComplexity(complexity: Integer) = setter(OPUS_SET_COMPLEXITY_REQUEST, complexity)
 

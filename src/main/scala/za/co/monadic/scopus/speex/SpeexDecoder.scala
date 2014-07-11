@@ -1,7 +1,7 @@
 package za.co.monadic.scopus.speex
 
 import za.co.monadic.scopus.speex.Speex._
-import za.co.monadic.scopus.{Codec, SampleFrequency, DecoderFloat, DecoderShort}
+import za.co.monadic.scopus.{SampleFrequency, DecoderFloat, DecoderShort}
 
 import scala.util.{Success, Failure, Try}
 

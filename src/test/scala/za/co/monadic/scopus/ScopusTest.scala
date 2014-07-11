@@ -73,11 +73,11 @@ class ScopusTest extends FunSpec with Matchers with GivenWhenThen with BeforeAnd
   val chunksFloat = audioFloat.slice(0, nSamples).grouped(chunkSize).toList
 
   val codecs = List(
-    ("Speex", SpeexEncoder(Sf8000), SpeexDecoderShort(Sf8000), SpeexDecoderFloat(Sf8000))/*
-    ("Opus", OpusEncoder(Sf8000, 1), OpusDecoderShort(Sf8000, 1), OpusDecoderFloat(Sf8000, 1))*/)
+    ("Speex", SpeexEncoder(Sf8000).complexity(1), SpeexDecoderShort(Sf8000), SpeexDecoderFloat(Sf8000), 0.81),
+    ("Opus", OpusEncoder(Sf8000, 1).complexity(2), OpusDecoderShort(Sf8000, 1), OpusDecoderFloat(Sf8000, 1), 0.90))
 
 
-  for ((desc, enc, dec, decFloat) <- codecs)  {
+  for ((desc, enc, dec, decFloat, corrMin) <- codecs)  {
 
     describe(s"$desc codec can") {
 
@@ -102,18 +102,19 @@ class ScopusTest extends FunSpec with Matchers with GivenWhenThen with BeforeAnd
         // Break the input and output audio streams into 5ms chunks and compute the energy in each chunk
         val in = chunks.toArray.flatten.grouped(40).toList
         val out = decoded.toArray.flatten.grouped(40).toList
+
+        // Uncomment for audible verification.
+        //writeAudioFile(s"$desc-test-short.raw",decoded.toArray.flatten)
+
         val eIn = for (a <- in) yield energy(a)
         val eOut = for (a <- out) yield energy(a)
-        correlate(eIn, eOut) should be > 0.93 // This is a pretty decent test if all is well
-        // Uncomment for audible verification.
-        //writeAudioFile("test-short.raw",decoded.toArray.flatten)
+        correlate(eIn, eOut) should be > corrMin // This is a pretty decent test if all is well
       }
-
 
       it("encode and decode audio segments as Float types") {
         Given("a PCM file coded as an array of short integers and a codec pair")
         enc.reset
-        dec.reset
+        decFloat.reset
         When("the audio is encoded and then decoded")
         val coded = for (c <- chunksFloat) yield enc(c).get
         val decoded = for (c <- coded) yield decFloat(c).get
@@ -131,7 +132,7 @@ class ScopusTest extends FunSpec with Matchers with GivenWhenThen with BeforeAnd
         val out = decoded.toArray.flatten.grouped(40).toList
         val eIn = for (a <- in) yield energy(a)
         val eOut = for (a <- out) yield energy(a)
-        correlate(eIn, eOut) should be > 0.93
+        correlate(eIn, eOut) should be > corrMin
       }
 
       it("decodes erased packets to the specified number of samples") {
@@ -156,12 +157,12 @@ class ScopusTest extends FunSpec with Matchers with GivenWhenThen with BeforeAnd
         val eOut = for (a <- out) yield energy(a)
         val rho = correlate(eIn, eOut)
         //writeAudioFile("test-short-erasure.raw",decoded.toArray.flatten)
-        rho should be > 0.91
+        rho should be > 0.95*corrMin
       }
 
       it("decode erased packets for Float data") {
         enc.reset
-        dec.reset
+        decFloat.reset
         val coded = for (c <- chunksFloat) yield enc(c).get
         val decoded = // Decode, dropping every 10th packet
           for {
@@ -173,7 +174,7 @@ class ScopusTest extends FunSpec with Matchers with GivenWhenThen with BeforeAnd
         val eIn = for (a <- in) yield energy(a)
         val eOut = for (a <- out) yield energy(a)
         val rho = correlate(eIn, eOut)
-        rho should be > 0.91
+        rho should be > 0.95*corrMin
       }
     }
 
@@ -206,6 +207,50 @@ class ScopusTest extends FunSpec with Matchers with GivenWhenThen with BeforeAnd
         speed should be > 400.0
         info(f"Decoder runs at $speed%5.1f times real time")
       }
+    }
+  }
+
+
+  describe("The Speex codec") {
+
+    it("constructs decoders and encoders for supported sample frequencies") {
+      try {
+        Given("a set of sampling frequencies for the encoders and decoders")
+        val freqs = List(8000, 16000, 32000)
+        When("they are constructed for different sample frequencies")
+        val e = List(SpeexEncoder(Sf8000), SpeexEncoder(Sf16000),SpeexEncoder(Sf32000))
+        val d = List(SpeexDecoderShort(Sf8000), SpeexDecoderShort(Sf16000),SpeexDecoderShort(Sf32000))
+        val df = List(SpeexDecoderFloat(Sf8000), SpeexDecoderFloat(Sf16000),SpeexDecoderFloat(Sf32000))
+        Then("the encoder structures return the correct sample frequency it was configured for")
+        for ((f, t) <- freqs zip e) {
+          t.getSampleRate should equal(f)
+        }
+        e.map(_.cleanup())
+        And("the short decoder structures return the correct frequencies")
+        for ((f, t) <- freqs zip d) {
+          t.getSampleRate should equal(f)
+        }
+        d.map(_.cleanup())
+        And("the float decoder structures return the correct frequencies")
+        for ((f, t) <- freqs zip df) {
+          t.getSampleRate should equal(f)
+        }
+        df.map(_.cleanup())
+      } catch {
+        case e: Exception => fail(s"Received exception ${e.getMessage}")
+      }
+    }
+
+    it ("won't allow unvalid sampling frequencies to be used") {
+      a [RuntimeException] should be thrownBy SpeexEncoder(Sf12000)
+      a [RuntimeException] should be thrownBy SpeexEncoder(Sf24000)
+      a [RuntimeException] should be thrownBy  SpeexEncoder(Sf48000)
+      a [RuntimeException] should be thrownBy SpeexDecoderShort(Sf12000)
+      a [RuntimeException] should be thrownBy SpeexDecoderShort(Sf24000)
+      a [RuntimeException] should be thrownBy SpeexDecoderShort(Sf48000)
+      a [RuntimeException] should be thrownBy SpeexDecoderFloat(Sf12000)
+      a [RuntimeException] should be thrownBy SpeexDecoderFloat(Sf24000)
+      a [RuntimeException] should be thrownBy SpeexDecoderFloat(Sf48000)
     }
   }
 

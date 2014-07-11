@@ -5,7 +5,7 @@
 #include "za_co_monadic_scopus_speex_Speex__.h"
 #include <speex/speex.h>
 #include <stdlib.h>
-
+#include <math.h>
 
 typedef struct {
     void *st;
@@ -80,6 +80,12 @@ JNIEXPORT jint JNICALL Java_za_co_monadic_scopus_speex_Speex_00024_encode_1float
     jfloat *in_ptr;
     jbyte *cod_ptr;
     jint ret;
+    spx_int32_t N;
+    int i;
+    spx_int16_t short_in[640];
+    speex_encoder_ctl(state->st, SPEEX_GET_FRAME_SIZE, &N);
+
+    if (N != len_in) return -2;
 
     in_ptr = (*env)->GetPrimitiveArrayCritical(env, input, 0);
     if (in_ptr == 0) return -1;
@@ -88,8 +94,17 @@ JNIEXPORT jint JNICALL Java_za_co_monadic_scopus_speex_Speex_00024_encode_1float
 	    (*env)->ReleasePrimitiveArrayCritical(env, input, in_ptr, 0);
 	    return -1;
     }
+
+    for (i=0;i<N;i++) {
+       if (in_ptr[i]>1.f)
+          short_in[i] = 1.f;
+       else if (in_ptr[i]<-1.f)
+           short_in[i] = -1.f;
+       else
+          short_in[i] = (spx_int16_t)floorf(.5+ 32767.f*in_ptr[i]);
+    }
     speex_bits_reset(&(state->bits));
-    speex_encode(state->st,in_ptr, &(state->bits));
+    speex_encode_int(state->st, short_in, &(state->bits));
     ret = speex_bits_write(&(state->bits),(char *)cod_ptr,len_out);
     (*env)->ReleasePrimitiveArrayCritical(env, coded, cod_ptr, 0);
     (*env)->ReleasePrimitiveArrayCritical(env, input, in_ptr, 0);

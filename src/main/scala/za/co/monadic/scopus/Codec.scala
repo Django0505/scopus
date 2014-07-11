@@ -93,5 +93,14 @@ trait Encoder extends Codec {
    * Release all pointers allocated for the encoder. Make every attempt to call this
    * when you are done with the encoder as finalise() is what it is in the JVM
    */
+
+  /**
+   * Set the complexity of the encoder. This has no effect if the encoder does not support
+   * complexity settings
+   * @param c A value between 0 and 10 indicating the encoder complexity.
+   * @return A reference to the updated encoder
+   */
+  def complexity(c:Int): Encoder
+
   def finalize()
 }

@@ -18,7 +18,7 @@ class SpeexEncoder(sampleFreq: SampleFrequency) extends Encoder {
 
   def getDetail = s"Speex encoder with sf= ${sampleFreq()}"
 
-  def reset() = encoder_ctl(state,SPEEX_RESET_STATE,0)
+  def reset = encoder_ctl(state,SPEEX_RESET_STATE,0)
 
   /**
    * @return The sample rate for this codec's instance
@@ -60,6 +60,18 @@ class SpeexEncoder(sampleFreq: SampleFrequency) extends Encoder {
       encoder_destroy(state)
       clean = true
     }
+  }
+
+  /**
+   * Set the complexity of the encoder. This has no effect if the encoder does not support
+   * complexity settings
+   * @param c A value between 0 and 10 indicating the encoder complexity.
+   * @return A reference to the updated encoder
+   */
+  override def complexity(c: Int): Encoder = {
+    require((c >= 0) && (c <= 10))
+    encoder_ctl(state,SPEEX_SET_QUALITY,c)
+    this
   }
 }
 
