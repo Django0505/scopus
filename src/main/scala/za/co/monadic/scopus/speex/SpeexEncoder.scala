@@ -1,7 +1,7 @@
 package za.co.monadic.scopus.speex
 
 import za.co.monadic.scopus._
-import scala.util.{Success, Try}
+import scala.util.{Failure, Success, Try}
 import Speex._
 
 /**
@@ -9,6 +9,8 @@ import Speex._
  */
 class SpeexEncoder(sampleFreq: SampleFrequency) extends Encoder {
 
+  val bufferSize = 8192
+  val decodePtr = new Array[Byte](bufferSize)
 
   val state: Long = encoder_create(getMode(sampleFreq))
   if (state <= 0) throw new RuntimeException("Failed to construct a Speex encoder")
@@ -29,8 +31,11 @@ class SpeexEncoder(sampleFreq: SampleFrequency) extends Encoder {
    * @return An array containing the compressed audio or the exception in case of a failure
    */
   override def apply(audio: Array[Short]): Try[Array[Byte]] = {
-
-    Success(Array[Byte](0))
+    val len: Int = encode_short(state, audio, audio.length, decodePtr, bufferSize)
+    if (len < 0)
+      Failure(new IllegalArgumentException(s"speex_encode() failed"))
+    else
+      Success(decodePtr.slice(0, len))
   }
 
   /**
@@ -39,7 +44,11 @@ class SpeexEncoder(sampleFreq: SampleFrequency) extends Encoder {
    * @return An array containing the compressed audio or the exception in case of a failure
    */
   override def apply(audio: Array[Float]): Try[Array[Byte]] = {
-    Success(Array[Byte](0))
+    val len: Int = encode_float(state, audio, audio.length, decodePtr, bufferSize)
+    if (len < 0)
+      Failure(new IllegalArgumentException(s"speex_encode() failed"))
+    else
+      Success(decodePtr.slice(0, len))
   }
 
   /**
